@@ -70,9 +70,11 @@ def prepare_values(func):
 
 def get_number_repeats(func):
     def wrapper(*args, **kwargs):
-        if kwargs.get("repeats") == None:
-            repeats = random.randrange(2, 5)
-            kwargs["repeats"] = repeats
+        repeats_positional = len(args) > 2
+        repeats_kw = "repeats" in kwargs
+
+        if not repeats_positional and not repeats_kw:
+            kwargs["repeats"] = random.randrange(2, 5)
 
         return func(*args, **kwargs)
 

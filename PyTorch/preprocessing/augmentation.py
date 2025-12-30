@@ -8,12 +8,7 @@ from typing import Any, Callable, List, Optional, Tuple
 import numpy as np
 
 from common import (
-    MatrixChannels,
-    TypeColor,
-    TypeIMG,
     TypeMatrix,
-    TypeRandom,
-    TypeShadeGrayColor,
 )
 
 from decorators import (
@@ -32,9 +27,6 @@ class DataAugmentationABC(ABC):
 
     @abstractmethod
     def augment(self, matrix: TypeMatrix, repeats: int) -> List[TypeMatrix]:
-        """
-        Zwraca listę zaugmentowanych wersji obrazu.
-        """
         pass
 
 class GeometryAugmentationABC(ABC):
@@ -55,7 +47,7 @@ class GeometryAugmentationABC(ABC):
         pass
 
     @abstractmethod
-    def random_shift(self, matrix: TypeMatrix, max_dx_dy: Optional[Tuple[int, int]] = None, fill: Optional[int] = None) -> TypeMatrix:
+    def random_shift(self, matrix: TypeMatrix, max_dx_dy: Optional[Tuple[int, int]] = None, fill: Optional[int] = None, is_right: bool = None) -> TypeMatrix:
         pass
 
 class NoiseAugmentationABC(ABC):
@@ -74,16 +66,14 @@ class MorphologyAugmentationABC(ABC):
 
     @abstractmethod
     def dilate(self, matrix: TypeMatrix, kernel_size: int) -> TypeMatrix:
-        """Pogrubia linie"""
         pass
 
     @abstractmethod
     def erode(self, matrix: TypeMatrix, kernel_size: int, fill: int = None, r: range = None) -> TypeMatrix:
-        """Cienia linie"""
+        pass
         
     @abstractmethod
     def get_boundaries(self, matrix: TypeMatrix, kernel_size: int, fill: int = None, r: range = None) -> TypeMatrix:
-        """Wyodrębnia krawędzie (obrys) obiektu"""
         pass
 
     @abstractmethod
@@ -110,30 +100,57 @@ class DataAugmentation(DataAugmentationABC):
         self.morphology_augmentation = MorphologyAugmentation()
         self.dilate = self.morphology_augmentation.dilate
         self.erode = self.morphology_augmentation.erode
-        self.morphology_augmentation.get_boundaries
-        self.morphology_augmentation.opening
-        self.morphology_augmentation.closing
+        self.get_boundaries = self.morphology_augmentation.get_boundaries
+        self.opening = self.morphology_augmentation.opening
+        self.closing = self.morphology_augmentation.closing
 
     @get_number_repeats
     def augment(self, matrix, repeats=None):
+        augmentations = [
+            lambda m: self.horizontal_flip(m),
+            lambda m: self.vertical_flip(m),
+            lambda m: self.rotate_90(m, is_right=True),
+            lambda m: self.rotate_90(m, is_right=False),
+            lambda m: self.rotate_small_angle(m, is_right=True),
+            lambda m: self.rotate_small_angle(m, is_right=False),
+            lambda m: self.random_shift(m, is_right=True),
+            lambda m: self.random_shift(m, is_right=False),
+            lambda m: self.gaussian_noise(m),
+            lambda m: self.salt_and_pepper(m),
+            lambda m: self.dilate(m, kernel_size=3),
+            lambda m: self.erode(m, kernel_size=3),
+            lambda m: self.get_boundaries(m, kernel_size=3),
+            lambda m: self.opening(m, kernel_size=3),
+            lambda m: self.closing(m, kernel_size=3),
+        ]
+
         result = []
 
         for _ in range(repeats):
-            new_matrix = matrix.copy()
+            new_m = [row[:] for row in matrix]
 
-            decisions = [random.randint(1,3) for _ in range(6)]
+            chosen = random.sample(augmentations, 3)
 
-            new_matrix = []
-            
+            for aug in chosen:
+                new_m = aug(new_m)
+
+            new_m_int = [[int(el) for el in row] for row in new_m]
+            result.append(new_m_int)
+
+        return result
+
 class GeometryAugmentation(GeometryAugmentationABC):
     def horizontal_flip(self, matrix):
+        print(f"horizontal_flip")
         return matrix[:, ::-1]
         
     def vertical_flip(self, matrix):
+        print(f"vertical_flip")
         matrix = np.array(matrix)
         return np.flip(matrix, axis=0)
 
     def rotate_90(self, matrix, is_right=None):
+        print(f"rotate_90")
         if is_right:
             return [row[::-1] for row in zip(*matrix)]
 
@@ -145,6 +162,7 @@ class GeometryAugmentation(GeometryAugmentationABC):
     @prepare_angle
     @prepare_values
     def rotate_small_angle(self, matrix, h, w, params, is_right=None, angle=None, fill=None):
+        print(f"rotate_small_angle")
         c, s, cx, cy = params['cos_a'], params['sin_a'], params['cx'], params['cy']
         new_m = params['new_matrix']
 
@@ -188,16 +206,29 @@ class GeometryAugmentation(GeometryAugmentationABC):
 
     @auto_fill_color
     @with_dimensions
-    def random_shift(self, matrix, h, w, max_dx_dy=None, fill=None):
-        dx, dy = max_dx_dy if max_dx_dy else (random.randint(1,4), random.randint(1,4))
-        
+    def random_shift(self, matrix, h, w, max_dx_dy=None, fill=None, is_right=None):
+        print(f"random_shift")
+        match is_right:
+            case True:
+                dx, dy = random.randint(1, 4), random.randint(-4, 4)
+            case False:
+                dx, dy = random.randint(-4, -1), random.randint(-4, 4)
+            case _:
+                dx, dy = max_dx_dy if max_dx_dy else (
+                    random.randint(-4, 4),
+                    random.randint(-4, 4)
+                )
+
         padded = self.__create_supplement_all_sides__(matrix, (dx, dy), fill)
-        sx, sy = random.randint(0, 2*dx), random.randint(0, 2*dy)
-        
-        return [row[sy : sy + w] for row in padded[sx : sx + h]]
+
+        sx = random.randint(0, abs(dx) * 2)
+        sy = random.randint(0, abs(dy) * 2)
+
+        return [row[sx : sx + w] for row in padded[sy : sy + h]]
 
 class NoiseAugmentation(NoiseAugmentationABC):
     def gaussian_noise(self, matrix, std=None):
+        print(f"gaussian_noise")
         if std == None:
             std = random.uniform(0.1, 5)
 
@@ -209,6 +240,7 @@ class NoiseAugmentation(NoiseAugmentationABC):
         return result
 
     def salt_and_pepper(self, matrix, prob=None):
+        print(f"salt_and_pepper")
         if prob == None:
             prob = random.uniform(0.01, 0.05)
 
@@ -233,6 +265,7 @@ class MorphologyAugmentation(MorphologyAugmentationABC):
 
     @kernel_data_processing
     def dilate(self, matrix, kernel_size, fill=None, r=None):
+        print(f"dilate")
         h, w = len(matrix), len(matrix[0])
         new_matrix = [[0 for _ in range(w)] for _ in range(h)]
         
@@ -244,6 +277,7 @@ class MorphologyAugmentation(MorphologyAugmentationABC):
     @auto_fill_color
     @kernel_data_processing
     def erode(self, matrix, kernel_size, fill=None, r=None):
+        print(f"erode")
         h, w = len(matrix), len(matrix[0])
         new_matrix = [[fill for _ in range(w)] for _ in range(h)]
 
@@ -267,6 +301,7 @@ class MorphologyAugmentation(MorphologyAugmentationABC):
     @auto_fill_color
     @kernel_data_processing
     def get_boundaries(self, matrix, kernel_size, fill=None, r=None):
+        print(f"get_boundaries")
         eroded_matrix = self.erode(matrix, kernel_size, fill=fill)
         
         h, w = len(matrix), len(matrix[0])
@@ -284,10 +319,30 @@ class MorphologyAugmentation(MorphologyAugmentationABC):
     
     @auto_fill_color
     def closing(self, matrix, kernel_size, fill=None):
+        print(f"closing")
         temp = self.dilate(matrix, kernel_size=kernel_size, fill=fill)
         return self.erode(temp, kernel_size=kernel_size, fill=fill)
 
     @auto_fill_color
     def opening(self, matrix, kernel_size, fill=None):
+        print(f"opening")
         temp = self.erode(matrix, kernel_size=kernel_size, fill=fill)
         return self.dilate(temp, kernel_size=kernel_size, fill=fill)
+import numpy as np
+import random
+
+matrix = [list(range(i*8, (i+1)*8)) for i in range(8)]
+
+data_aug = DataAugmentation()
+
+random.seed(42)
+
+augmented_matrices = data_aug.augment(matrix, repeats=1)
+
+print("Oryginalna macierz:")
+for row in matrix:
+    print(row)
+
+print("\nZaugmentowana macierz:")
+for row in augmented_matrices[0]:
+    print(row)
