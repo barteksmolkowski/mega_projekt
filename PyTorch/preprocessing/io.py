@@ -1,47 +1,33 @@
+from abc import ABC, abstractmethod
+from PIL import Image
+import numpy as np
+from typing import Union
+
 from common import (
-    ABC,
-    abstractmethod,
-    random,
-    math,
-    TypeColor,
     TypeMatrix,
-    TypeIMG,
-    MatrixChannels,
-    List,
-    Tuple
+    TypeIMG
 )
 
-class __ImageLoader__(ABC):
+class __ImageHandler__(ABC):
     @abstractmethod
-    def open_image(self, path: str) -> tuple[TypeIMG, int, int]:
-        pass
-
-class __DataExporter__(ABC):
-    @abstractmethod
-    def save_as_image(
-        self,
-        matrix: TypeIMG,
-        path: str
-    ) -> None:
+    def open_image(self, path: str) -> tuple[Image.Image, int, int]:
         pass
 
     @abstractmethod
-    def save_as_matrix(
-        self,
-        matrix_channels: MatrixChannels,
-        path: str
-    ) -> None:
+    def save(self, data: Union[TypeIMG, list[TypeMatrix]], path: str) -> None:
         pass
 
-
-class ImageLoader(__ImageLoader__):
+class ImageHandler(__ImageHandler__):
     def open_image(self, path):
-        img = PILImage.open(path).convert("RGB")
+        img = Image.open(path).convert("RGB")
         width, height = img.size
-        return img, width, height
-class DataExporter(__DataExporter__):
-    def save_as_image(self, matrix, path):
-        0
+        array = np.array(img)
+        img_list = [[tuple(pixel) for pixel in row] for row in array.tolist()]
 
-    def save_as_matrix(self, matrix_channels, path):
-        0
+        return img_list, width, height
+    
+    def save(self, data, path):
+        array = np.array(data, dtype=np.uint8)
+        imgpil = Image.fromarray(array)
+        imgpil.save(path)
+        

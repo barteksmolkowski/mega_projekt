@@ -1,9 +1,8 @@
 import math
 import random
 from abc import ABC, abstractmethod
-from collections import Counter
 from itertools import product
-from typing import Any, Callable, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -207,7 +206,6 @@ class GeometryAugmentation(GeometryAugmentationABC):
     @auto_fill_color
     @with_dimensions
     def random_shift(self, matrix, h, w, max_dx_dy=None, fill=None, is_right=None):
-        print(f"random_shift")
         match is_right:
             case True:
                 dx, dy = random.randint(1, 4), random.randint(-4, 4)
@@ -227,23 +225,14 @@ class GeometryAugmentation(GeometryAugmentationABC):
         return [row[sx : sx + w] for row in padded[sy : sy + h]]
 
 class NoiseAugmentation(NoiseAugmentationABC):
-    def gaussian_noise(self, matrix, std=None):
-        print(f"gaussian_noise")
-        if std == None:
-            std = random.uniform(0.1, 5)
-
+    def gaussian_noise(self, matrix, std=random.uniform(0.1, 5)):
         np_matrix = np.array(matrix)
 
         std_matrix = np.random.normal(0, std, np_matrix.shape).round().astype(int)
 
-        result = np_matrix + std_matrix
-        return result
+        return np_matrix + std_matrix
 
-    def salt_and_pepper(self, matrix, prob=None):
-        print(f"salt_and_pepper")
-        if prob == None:
-            prob = random.uniform(0.01, 0.05)
-
+    def salt_and_pepper(self, matrix, prob=random.uniform(0.01, 0.05)) -> TypeMatrix:
         result = np.array(matrix, copy=True)
 
         random_matrix = np.random.random(result.shape)
@@ -328,21 +317,3 @@ class MorphologyAugmentation(MorphologyAugmentationABC):
         print(f"opening")
         temp = self.erode(matrix, kernel_size=kernel_size, fill=fill)
         return self.dilate(temp, kernel_size=kernel_size, fill=fill)
-import numpy as np
-import random
-
-matrix = [list(range(i*8, (i+1)*8)) for i in range(8)]
-
-data_aug = DataAugmentation()
-
-random.seed(42)
-
-augmented_matrices = data_aug.augment(matrix, repeats=1)
-
-print("Oryginalna macierz:")
-for row in matrix:
-    print(row)
-
-print("\nZaugmentowana macierz:")
-for row in augmented_matrices[0]:
-    print(row)

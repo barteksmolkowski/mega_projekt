@@ -1,7 +1,7 @@
 from functools import wraps
+import time
 
 def with_dimensions(func):
-    """Techniczne wyciąganie h i w - przydatne w każdym module."""
     @wraps(func)
     def wrapper(self, matrix, *args, **kwargs):
         h = len(matrix)
@@ -9,5 +9,10 @@ def with_dimensions(func):
         return func(self, matrix, h, w, *args, **kwargs)
     return wrapper
 
-# Tutaj w przyszłości dodasz np. @timer lub @check_matrix_type
-# takie ogolne
+def timer(func):
+    def wrapper(self, *args, **kwargs):
+        start = time.perf_counter()
+        result = func(self, *args, **kwargs)
+        print(f"Metoda {func.__name__} zajęła {time.perf_counter() - start:.4f}s")
+        return result
+    return wrapper

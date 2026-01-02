@@ -16,14 +16,6 @@ class __MatrixCreator__(ABC):
 
 class __MatrixProcessor__(ABC):
     @abstractmethod
-    def scale_range(self, value: float, old_range: Tuple[float, float], new_range: Tuple[float, float]):
-        pass
-
-    @abstractmethod
-    def normalize(matrix: TypeMatrix, min_val: float, max_val: float) -> TypeMatrix:
-        pass
-
-    @abstractmethod
     def resize(self, matrix: TypeMatrix, new_size: list[int, int]) -> TypeMatrix:
         pass
 
@@ -42,14 +34,6 @@ class MatrixCreator(__MatrixCreator__):
         return new_matrix
     
 class MatrixProcessor(__MatrixProcessor__):
-    def scale_range(self, value, old_range, new_range):
-        return old_range[0] + ((value - new_range[0]) * (old_range[1] - old_range[0]) / (new_range[1] - new_range[0]))
-
-    def normalize(self, matrix, old_range = (0, 1), new_range = (0, 255)):
-        for x, y in product(range(len(matrix[0])), range(len(matrix))):
-            matrix[x][y] = self.scale_range(matrix[x][y], old_range, new_range)
-        return matrix
-
     def _upscale_vertical(self, matrix: TypeMatrix, target_h: int):
         old_h = len(matrix)
         if old_h < target_h:

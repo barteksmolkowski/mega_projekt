@@ -1,14 +1,9 @@
+from abc import ABC, abstractmethod
+
 from common import (
-    ABC,
-    abstractmethod,
-    random,
-    math,
-    TypeColor,
     TypeMatrix,
     TypeIMG,
-    MatrixChannels,
-    List,
-    Tuple
+    MatrixChannels
 )
 
 class __GrayScaleProcessing__(ABC):

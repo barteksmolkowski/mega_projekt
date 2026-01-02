@@ -1,15 +1,12 @@
+from abc import ABC, abstractmethod
+from itertools import product
+
 from common import (
-    ABC,
-    abstractmethod,
-    random,
-    math,
-    TypeColor,
     TypeMatrix,
-    TypeIMG,
-    MatrixChannels,
-    List,
-    Tuple
+    List
 )
+
+from geometry import MatrixCreator
 
 class __ConvolutionActions__(ABC):
     @staticmethod
@@ -19,7 +16,7 @@ class __ConvolutionActions__(ABC):
 
     @staticmethod
     @abstractmethod
-    def apply_filter_to_channels_or_path(self, channels_or_path: List[TypeMatrix], filtr: List[TypeMatrix], padding: bool = True) -> List[TypeMatrix]:
+    def apply_filters(self, channels_or_path: List[TypeMatrix], filtr: List[TypeMatrix], padding: bool = True) -> List[TypeMatrix]:
         pass
 
 class ConvolutionActions(__ConvolutionActions__):
@@ -44,9 +41,8 @@ class ConvolutionActions(__ConvolutionActions__):
                 row = []
                 for x in range(out_w):
                     s = 0
-                    for fy in range(fh):
-                        for fx in range(fw):
-                            s += matrix[y + fy * dil][x + fx * dil] * filtr[fy][fx]
+                    for fy, fx in product(range(fh), range(fw)):
+                        s += matrix[y + fy * dil][x + fx * dil] * filtr[fy][fx]
                     row.append(s)
                 result.append(row)
             results.append(result)
@@ -54,13 +50,31 @@ class ConvolutionActions(__ConvolutionActions__):
         return results
 
     @staticmethod
-    def apply_filter_to_channels_or_path(channels_or_path: List[TypeMatrix], filtr: List[TypeMatrix], padding: bool = True) -> List[TypeMatrix]:
+    def apply_filters(matrix_three_channels: List[TypeMatrix], filtrs: List[TypeMatrix]) -> List[TypeMatrix]:
         results = []
-        for channel in channels_or_path:
-            if padding:
-                channel = MatrixProcessor.pad(channel, -1, 1)
-            results.append(
-                ConvolutionActions.convolution_2d(channel, filtr)
-            )
+        for filtr, matrix in product(filtrs, matrix_three_channels):
+            print(f"aktualny filtr: {filtr}")
+            matrix = MatrixCreator.pad(matrix, -1, 1)
+            results = ConvolutionActions.convolution_2d(matrix, filtr)
 
         return results
+    
+convAct = ConvolutionActions()
+threematrix = [
+    [[1,2,3],[1,2,3],[1,2,3]],
+    [[1,2,3],[1,2,3],[1,2,3]],
+    [[1,2,3],[1,2,3],[1,2,3]]
+]
+
+convAct.apply_filters(threematrix, filtrs)
+
+filtr_h = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
+filtr_v = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
+
+filtrs = [filtr_h, filtr_v]
+
+threematrix = [
+    [[1,2,3],[1,2,3],[1,2,3]],
+    [[1,2,3],[1,2,3],[1,2,3]],
+    [[1,2,3],[1,2,3],[1,2,3]]
+]
