@@ -1,20 +1,27 @@
 from abc import ABC, abstractmethod
 from PIL import Image
 import numpy as np
-from typing import Union
+from typing import overload
 
-from common import (
-    TypeMatrix,
-    TypeIMG
-)
+from common import TypeMatrix
 
 class __ImageHandler__(ABC):
     @abstractmethod
-    def open_image(self, path: str) -> tuple[Image.Image, int, int]:
+    def open_image(self, path: str) -> tuple[TypeMatrix, int, int]:
+        pass
+
+    @overload
+    def save(self, data: TypeMatrix, path: str) -> None: ...
+
+    @overload
+    def save(self, data: list[TypeMatrix], path: str) -> None: ...
+
+    @abstractmethod
+    def save(self, data, path):
         pass
 
     @abstractmethod
-    def save(self, data: Union[TypeIMG, list[TypeMatrix]], path: str) -> None:
+    def process_file(self, input_path: str, output_path: str) -> None:
         pass
 
 class ImageHandler(__ImageHandler__):

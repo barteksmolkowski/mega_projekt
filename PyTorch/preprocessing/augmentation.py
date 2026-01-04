@@ -6,9 +6,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-from common import (
-    TypeMatrix,
-)
+from common import TypeMatrix
 
 from decorators import (
     auto_fill_color,

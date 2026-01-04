@@ -1,34 +1,23 @@
 from abc import ABC, abstractmethod
+from PIL import Image
 
-from common import (
-    TypeIMG,
-    MatrixChannels
-)
+from common import MatrixChannels
+
+import numpy as np
+
 class __ImageToMatrixConverter__(ABC):
     @abstractmethod
-    def convert_image_to_matrix(self, path: str) -> MatrixChannels:
-        pass
-
-    @abstractmethod
-    def separate_channels(self, matrix: TypeIMG) -> MatrixChannels:
+    def get_channels_from_file(self, path: str) -> MatrixChannels:
         pass
 
 class ImageToMatrixConverter(__ImageToMatrixConverter__):
-    def convert_image_to_matrix(self, path):
-        img, width, height = self.open_image(path)
-        matrix = []
+    def _separate_channels(self, matrix):
+        return [matrix[:, :, i] for i in range(3)]
 
-        for y in range(height):
-            row = []
-            for x in range(width):
-                row.append(img.getpixel((x, y)))
-            matrix.append(row)
+    def _convert_image_to_matrix(self, path):
+        img = Image.open(path).convert("RGB")
+        return np.array(img)
 
-        return matrix
-
-    def separate_channels(self, matrix):
-        return [
-            [[matrix[y][x][i] for x in range(len(matrix[0]))]
-             for y in range(len(matrix))]
-            for i in range(3)
-        ]
+    def get_channels_from_file(self, path):
+        matrix = self.convert_image_to_matrix(path)
+        return self.separate_channels(matrix)

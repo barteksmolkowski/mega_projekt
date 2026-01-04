@@ -1,60 +1,45 @@
 from abc import ABC, abstractmethod
-from itertools import product
-from common import (
-    TypeMatrix,
-    Tuple
-)
+from common import TypeMatrix
+import numpy as np
 
-class __MatrixCreator__(ABC):
+class __ImageGeometry__(ABC):
     @abstractmethod
-    def create(self, height: int, width: int, value: int = -1) -> TypeMatrix:
+    def pad(self, matrix: TypeMatrix, pad_value: int, pad: int) -> TypeMatrix:
         pass
 
     @abstractmethod
-    def pad(self, matrix: TypeMatrix, pad_value: int = -1, pad_size: int = 1) -> TypeMatrix:
+    def resize(self, matrix: TypeMatrix, new_size: tuple[int, int]) -> TypeMatrix:
         pass
 
-class __MatrixProcessor__(ABC):
     @abstractmethod
-    def resize(self, matrix: TypeMatrix, new_size: list[int, int]) -> TypeMatrix:
+    def prepare_standard_geometry(
+        self,
+        matrix: TypeMatrix,
+        target_size: tuple[int, int] = (28, 28),
+        padding: int = 2,
+        pad_value: int = 0
+        ) -> np.ndarray:
         pass
 
-class MatrixCreator(__MatrixCreator__):
-    def create(self, height, width, value):
-        return [[value for _ in range(width)] for _ in range(height)]
-
-    def pad(self, matrix, pad_value, pad_size):
+class ImageGeometry(__ImageGeometry__):
+    def pad(self, matrix, pad_value=-1, pad=1):
         h, w = len(matrix), len(matrix[0])
-        new_h, new_w = h + 2 * pad_size, w + 2 * pad_size
-        new_matrix = self.create(new_h, new_w, pad_value)
-
-        for y, x in product(range(h), range(w)):
-            new_matrix[y + pad_size][x + pad_size] = matrix[y][x]
-
+        new_h, new_w = h + 2 * pad, w + 2 * pad
+        new_matrix = np.full((new_h, new_w), pad_value)
+        new_matrix[pad:pad + h, pad:pad + w] = matrix
         return new_matrix
-    
-class MatrixProcessor(__MatrixProcessor__):
-    def _upscale_vertical(self, matrix: TypeMatrix, target_h: int):
-        old_h = len(matrix)
-        if old_h < target_h:
-            height_multiplier = 1
-            while old_h * height_multiplier <= target_h:
-                height_multiplier += 1
-            return [row for row in matrix for _ in range(height_multiplier)]
-        return matrix
 
-    def _upscale_horizontal(self, matrix, target_w):
-        old_w = len(matrix[0])
-        if old_w < target_w:
-            weight_multiplier = 1
-            while old_w * weight_multiplier <= target_w:
-                weight_multiplier += 1
-            return [[pixel for pixel in row for _ in range(weight_multiplier)] for row in matrix]
-        return matrix
+    def _upscale_vertical(self, matrix, new_size):
+        return np.repeat(matrix, new_size[0] // len(matrix), axis=0)
+
+    def _upscale_horizontal(self, matrix, new_size): 
+        return np.repeat(matrix, new_size[1] // len(matrix[0]), axis=1) 
 
     def _prepare_supersampling(self, matrix, new_size):
-        matrix = self._upscale_vertical(matrix, new_size[0])
-        matrix = self._upscale_horizontal(matrix, new_size[1])
+        if len(matrix) < new_size[0]:
+            matrix = self._upscale_vertical(matrix, new_size)
+        if len(matrix[0]) < new_size[1]:
+            matrix = self._upscale_horizontal(matrix, new_size)
         return matrix
 
     def _calculate_range_list(self, curr_size, new_size):
@@ -71,27 +56,31 @@ class MatrixProcessor(__MatrixProcessor__):
                 rangeList[axis].append((start, end - 1))
         return rangeList
 
-    def _apply_averaging(self, matrix, rangeList, new_matrix):
-        for (idx_h, pair_h), (idx_w, pair_w) in product(enumerate(rangeList[0]), enumerate(rangeList[1])):
-            sum_numbers = 0
-            divider = 0
-            for i, j in product(range(pair_h[0], pair_h[1] + 1), range(pair_w[0], pair_w[1] + 1)):
-                sum_numbers += matrix[i][j]
-                divider += 1
-            if divider > 0:
-                new_matrix[idx_h][idx_w] = sum_numbers // divider
-        return new_matrix
+    def _apply_averaging(self, matrix, range_list):
+        return np.array([
+            [np.mean(matrix[y_s : y_e+1, x_s : x_e+1]) for x_s, x_e in range_list[1]]
+            for y_s, y_e in range_list[0]
+        ]).astype(int)
 
     def _downscale_to_target(self, matrix, new_size):
-        curr_size = (len(matrix), len(matrix[0]))
-        if curr_size == new_size:
+        curr_h, curr_w = len(matrix), len(matrix[0])
+        if (curr_h, curr_w) == new_size:
             return matrix
             
-        new_matrix = [[0 for _ in range(new_size[1])] for _ in range(new_size[0])]
-        rangeList = self._calculate_range_list(curr_size, new_size)
-        return self._apply_averaging(matrix, rangeList, new_matrix)
+        range_list = self._calculate_range_list((curr_h, curr_w), new_size)
+        return self._apply_averaging(matrix, range_list)
 
     def resize(self, matrix, new_size=(28, 28)):
-        expanded_matrix = self._prepare_supersampling(matrix, new_size)
-        final_matrix = self._downscale_to_target(expanded_matrix, new_size)
-        return final_matrix
+        matrix_np = np.array(matrix)
+        expanded = self._prepare_supersampling(matrix_np, new_size)
+        final = self._downscale_to_target(expanded, new_size)
+        return final
+
+    def prepare_standard_geometry(self, matrix, target_size, padding, pad_value):
+        return self.pad(
+            self.resize(matrix, 
+                (target_size[0] - 2 * padding, target_size[1] - 2 * padding)
+                ),
+            pad_value=pad_value,
+            pad=padding
+            )

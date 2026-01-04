@@ -1,39 +1,25 @@
 from abc import ABC, abstractmethod
+from typing import overload
 
-from common import (
-    TypeMatrix,
-    TypeIMG,
-    MatrixChannels
-)
+from common import TypeMatrix
+
+import numpy as np
 
 class __GrayScaleProcessing__(ABC):
-    @staticmethod
-    @abstractmethod
-    def rgb_to_grayscale(matrix_channels: MatrixChannels) -> TypeMatrix:
-        pass
+    @overload
+    def convert_color_space(self, matrix: TypeMatrix, to_gray: bool = True) -> TypeMatrix: ...
 
-    @staticmethod
+    @overload
+    def convert_color_space(self, matrix: TypeMatrix, to_gray: bool = False) -> TypeMatrix: ...
+
     @abstractmethod
-    def grayscale_to_rgb(matrix: TypeMatrix) -> TypeIMG:
+    def convert_color_space(self, matrix: TypeMatrix, to_gray: bool = True) -> TypeMatrix:
         pass
 
 class GrayScaleProcessing(__GrayScaleProcessing__):
-    @staticmethod
-    def rgb_to_grayscale(matrix_channels):
-        gray = []
-
-        for row in matrix_channels:
-            gray_row = []
-            for (r, g, b) in row:
-                value = int(0.299 * r + 0.587 * g + 0.114 * b)
-                gray_row.append(value)
-            gray.append(gray_row)
-
-        return gray
-
-    @staticmethod
-    def grayscale_to_rgb(matrix):
-        return [
-            [(v, v, v) for v in row]
-            for row in matrix
-        ]
+    def convert_color_space(self, matrix, to_gray = True):
+        if to_gray:
+            weights = np.array([0.299, 0.587, 0.114])
+            return np.dot(matrix[..., :3], weights).astype(np.uint8)
+        else:
+            return np.stack([matrix] * 3, axis=-1).astype(np.uint8)

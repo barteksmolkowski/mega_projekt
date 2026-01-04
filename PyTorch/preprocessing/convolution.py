@@ -58,23 +58,3 @@ class ConvolutionActions(__ConvolutionActions__):
             results = ConvolutionActions.convolution_2d(matrix, filtr)
 
         return results
-    
-convAct = ConvolutionActions()
-threematrix = [
-    [[1,2,3],[1,2,3],[1,2,3]],
-    [[1,2,3],[1,2,3],[1,2,3]],
-    [[1,2,3],[1,2,3],[1,2,3]]
-]
-
-convAct.apply_filters(threematrix, filtrs)
-
-filtr_h = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
-filtr_v = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
-
-filtrs = [filtr_h, filtr_v]
-
-threematrix = [
-    [[1,2,3],[1,2,3],[1,2,3]],
-    [[1,2,3],[1,2,3],[1,2,3]],
-    [[1,2,3],[1,2,3],[1,2,3]]
-]
