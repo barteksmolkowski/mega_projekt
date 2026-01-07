@@ -1,42 +1,52 @@
 from abc import ABC, abstractmethod
-from itertools import product
+from typing import Tuple, Literal, overload
 
-import math
 import numpy as np
-from typing import Tuple
 
-from common import TypeMatrix
 
 class __Normalization__(ABC):
     @abstractmethod
-    def normalize(self, matrix: TypeMatrix, old_range: Tuple[int, int], new_range: Tuple[int, int]) -> TypeMatrix:
+    def normalize(self, M: np.ndarray, old_range: Tuple[int, int], new_range: Tuple[int, int]) -> np.ndarray:
         pass
 
     @abstractmethod
-    def z_score_normalization(self, matrix: TypeMatrix) -> TypeMatrix:
+    def z_score_normalization(self, M: np.ndarray) -> np.ndarray:
+        pass
+
+    @overload
+    @abstractmethod
+    def process(self, M: np.ndarray, use_z_score: Literal[True]) -> np.ndarray: ...
+
+    @overload
+    @abstractmethod
+    def process(
+        self, 
+        M: np.ndarray, 
+        use_z_score: Literal[False], 
+        old_r: Tuple[int, int], 
+        new_r: Tuple[int, int]
+    ) -> np.ndarray: ...
+
+    @abstractmethod
+    def process(
+        self, 
+        M: np.ndarray, 
+        use_z_score: bool = True, 
+        old_r: Tuple[int, int] = (0, 255), 
+        new_r: Tuple[int, int] = (0, 1)
+    ) -> np.ndarray:
         pass
 
 class Normalization(__Normalization__):
-    def _scale_range(self, value, old_range, new_range):
-        return old_range[0] + ((value - new_range[0]) * (old_range[1] - old_range[0]) / (new_range[1] - new_range[0]))
+    def normalize(self, M, old_r=(0, 255), new_r=(0, 1)):
+        return (M - old_r[0]) * (new_r[1] - new_r[0]) / (old_r[1] - old_r[0]) + new_r[0]
 
-    def normalize(self, matrix, old_range = (0, 1), new_range = (0, 255)):
-        for x, y in product(range(len(matrix[0])), range(len(matrix))):
-            matrix[x][y] = self._scale_range(matrix[x][y], old_range, new_range)
-        return matrix
+    def z_score_normalization(self, M):
+        mu, sigma = M.mean(), M.std()
+        return (M - mu) / sigma if sigma != 0 else M - mu
 
-    def z_score_normalization(self, matrix):
-        matrix = np.array(matrix, dtype=float)
-        mean_all_px = matrix.mean()
-        number_pixels = len(matrix[0]) * len(matrix)
-    
-        square_differences = 0
-        for x, y in product(range(len(matrix[0])), range(len(matrix))):
-            square_differences += (matrix[x][y] - mean_all_px) ** 2
-        
-        sigma = math.sqrt(square_differences / number_pixels)
-
-        for x, y in product(range(len(matrix[0])), range(len(matrix))):
-            matrix[x][y] = (matrix[x][y] - mean_all_px) / sigma
-        
-        return matrix
+    def process(self, M, use_z_score=True, old_r=(0, 255), new_r=(0, 1)):
+        M_np = np.array(M, dtype=float)
+        if use_z_score:
+            return self.z_score_normalization(M_np)
+        return self.normalize(M_np, old_r, new_r)

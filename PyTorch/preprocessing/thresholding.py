@@ -1,12 +1,41 @@
 from abc import ABC, abstractmethod
-from itertools import product
+from typing import Literal, overload
+
 import numpy as np
 
 from common import TypeMatrix
 
+from decorators import parameter_complement
+
 class __Thresholding__(ABC):
+    @overload
     @abstractmethod
-    def adaptive_threshold(self, matrix: TypeMatrix, block_size: int, c: int) -> TypeMatrix:
+    def adaptive_threshold(
+        self, 
+        matrix: TypeMatrix, 
+        block_size: int = 0, 
+        c: int = 0, 
+        auto_params: Literal[True] = True
+    ) -> TypeMatrix: ...
+
+    @overload
+    @abstractmethod
+    def adaptive_threshold(
+        self, 
+        matrix: TypeMatrix, 
+        block_size: int, 
+        c: int, 
+        auto_params: Literal[False]
+    ) -> TypeMatrix: ...
+
+    @abstractmethod
+    def adaptive_threshold(
+        self, 
+        matrix: TypeMatrix, 
+        block_size: int = 5, 
+        c: int = 2, 
+        auto_params: bool = True
+    ) -> TypeMatrix:
         pass
 
 class Thresholding(__Thresholding__):
@@ -20,19 +49,21 @@ class Thresholding(__Thresholding__):
         weighted_sum = np.sum(window * kernel)
         return weighted_sum // kernel_sum
 
-    def adaptive_threshold(self, matrix: np.ndarray, block_size: int = 5, c: int = 2) -> np.ndarray:
-        h, w = len(matrix), len(matrix[0])
+    @parameter_complement
+    def adaptive_threshold(
+        self, 
+        matrix: np.ndarray, 
+        block_size: int = 5, 
+        c: int = 2, 
+        auto_params: bool = True
+    ) -> np.ndarray:
         kernel = self._generate_gaussian_kernel((block_size // 2) + 1)
         
         padded_matrix = np.pad(matrix, pad_width=block_size // 2, mode='reflect')
 
-        result = np.zeros((h, w), dtype=np.uint8)
+        windows = np.lib.stride_tricks.sliding_window_view(padded_matrix, (block_size, block_size))
 
-        for i, j in product(range(h), range(w)):
-            window = padded_matrix[i : i + block_size, j : j + block_size]
-            
-            local_threshold = self._get_gaussian_mean(window, kernel)
-            
-            result[i][j] = 255 if matrix[i][j] > (local_threshold - c) else 0
+        weighted_windows = windows * kernel
+        local_thresholds = np.sum(weighted_windows, axis=(2, 3)) / np.sum(kernel)
                 
-        return result
+        return np.where(matrix > (local_thresholds - c), 255, 0).astype(np.uint8)

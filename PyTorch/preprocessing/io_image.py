@@ -1,20 +1,22 @@
 from abc import ABC, abstractmethod
 from PIL import Image
 import numpy as np
-from typing import overload
 
-from common import TypeMatrix
+
+from typing import overload, Literal
 
 class __ImageHandler__(ABC):
     @abstractmethod
-    def open_image(self, path: str) -> tuple[TypeMatrix, int, int]:
+    def open_image(self, path: str) -> tuple[np.ndarray, int, int]:
         pass
 
     @overload
-    def save(self, data: TypeMatrix, path: str) -> None: ...
+    @abstractmethod
+    def save(self, data: np.ndarray, path: str) -> None: ...
 
     @overload
-    def save(self, data: list[TypeMatrix], path: str) -> None: ...
+    @abstractmethod
+    def save(self, data: list[np.ndarray], path: str) -> None: ...
 
     @abstractmethod
     def save(self, data, path):
@@ -22,6 +24,18 @@ class __ImageHandler__(ABC):
 
     @abstractmethod
     def process_file(self, input_path: str, output_path: str) -> None:
+        pass
+
+    @overload
+    @abstractmethod
+    def handle_file(self, path: str, data: None = None, is_save_mode: Literal[False] = False) -> np.ndarray: ...
+
+    @overload
+    @abstractmethod
+    def handle_file(self, path: str, data: np.ndarray, is_save_mode: Literal[True]) -> None: ...
+
+    @abstractmethod
+    def handle_file(self, path, data=None, is_save_mode=False):
         pass
 
 class ImageHandler(__ImageHandler__):
@@ -37,4 +51,13 @@ class ImageHandler(__ImageHandler__):
         array = np.array(data, dtype=np.uint8)
         imgpil = Image.fromarray(array)
         imgpil.save(path)
-        
+
+    def handle_file(self, path, data=None, is_save_mode=False):
+        if is_save_mode:
+            if data is None:
+                raise ValueError("Musisz podać 'data', aby zapisać plik!")
+            self.save(data, path)
+            return None
+        else:
+            matrix, _, _ = self.open_image(path)
+            return matrix

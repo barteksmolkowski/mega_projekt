@@ -44,3 +44,15 @@ class Pooling(__Pooling__):
             ]
             for y in range(0, len(matrix) - kernel_size[0] + 1, stride)
         ]
+    
+pooling = Pooling()
+matrix = [
+    [1, 2, 3, 4],
+    [4, 5, 6, 7],
+    [7, 8, 9, 10],
+    [11, 12, 13, 14]
+]
+
+matrix = pooling.max_pool(matrix)
+for row in matrix:
+    print(row)

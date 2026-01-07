@@ -1,18 +1,10 @@
 from common import (
     ABC,
     abstractmethod,
-    random,
-    math,
-    TypeColor,
     TypeMatrix,
-    TypeIMG,
-    MatrixChannels,
-    List,
-    Tuple
+    List
 )
 
-from edges import Sobel, Prewitt
-from hog import HOG
 
 class __FeatureExtraction__(ABC):
     @abstractmethod

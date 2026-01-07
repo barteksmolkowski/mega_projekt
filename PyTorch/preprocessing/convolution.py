@@ -1,32 +1,59 @@
 from abc import ABC, abstractmethod
 from itertools import product
-
-from common import (
-    TypeMatrix,
-    List
-)
+from typing import overload, Literal, List
+from common import TypeMatrix
 
 from geometry import MatrixCreator
 
 class __ConvolutionActions__(ABC):
-    @staticmethod
     @abstractmethod
-    def convolution_2d(self, matrix: TypeMatrix, filtrs: List[TypeMatrix] = None, dilated: int = 1) -> List[TypeMatrix]:
+    def convolution_2d(
+        self,
+        M: TypeMatrix,
+        filtrs: List[TypeMatrix] = None,
+        dilated: int = 1
+        ) -> List[TypeMatrix]:
         pass
 
-    @staticmethod
+    @overload
     @abstractmethod
-    def apply_filters(self, channels_or_path: List[TypeMatrix], filtr: List[TypeMatrix], padding: bool = True) -> List[TypeMatrix]:
+    def apply_filters(
+        self, 
+        channels_or_path: List[TypeMatrix], 
+        filtr: List[TypeMatrix], 
+        padding: Literal[True] = True
+    ) -> List[TypeMatrix]: ...
+
+    @overload
+    @abstractmethod
+    def apply_filters(
+        self, 
+        channels_or_path: List[TypeMatrix], 
+        filtr: List[TypeMatrix], 
+        padding: Literal[False]
+    ) -> List[TypeMatrix]: ...
+
+    @abstractmethod
+    def apply_filters(
+        self, 
+        channels_or_path: List[TypeMatrix], 
+        filtr: List[TypeMatrix], 
+        padding: bool = True
+    ) -> List[TypeMatrix]:
         pass
 
 class ConvolutionActions(__ConvolutionActions__):
-    @staticmethod
-    def convolution_2d(matrix: TypeMatrix, filtrs: List[TypeMatrix] = None, dilated: int = 1) -> List[TypeMatrix]:
+    def convolution_2d(
+            M: TypeMatrix,
+            filtrs: List[TypeMatrix] = None,
+            dilated: int = 1
+            ) -> List[TypeMatrix]:
+        
         if filtrs is None or len(filtrs) == 0:
-            return [matrix]
+            return [M]
 
         results = []
-        h, w = len(matrix), len(matrix[0])
+        h, w = len(M), len(M[0])
 
         for filtr in filtrs:
             fh, fw = len(filtr), len(filtr[0])
@@ -42,19 +69,22 @@ class ConvolutionActions(__ConvolutionActions__):
                 for x in range(out_w):
                     s = 0
                     for fy, fx in product(range(fh), range(fw)):
-                        s += matrix[y + fy * dil][x + fx * dil] * filtr[fy][fx]
+                        s += M[y + fy * dil][x + fx * dil] * filtr[fy][fx]
                     row.append(s)
                 result.append(row)
             results.append(result)
 
         return results
 
-    @staticmethod
-    def apply_filters(matrix_three_channels: List[TypeMatrix], filtrs: List[TypeMatrix]) -> List[TypeMatrix]:
+    def apply_filters(
+            M_three_channels: List[TypeMatrix],
+            filtrs: List[TypeMatrix]
+            ) -> List[TypeMatrix]:
+        
         results = []
-        for filtr, matrix in product(filtrs, matrix_three_channels):
+        for filtr, M in product(filtrs, M_three_channels):
             print(f"aktualny filtr: {filtr}")
-            matrix = MatrixCreator.pad(matrix, -1, 1)
-            results = ConvolutionActions.convolution_2d(matrix, filtr)
+            M = MatrixCreator.pad(M, -1, 1)
+            results = ConvolutionActions.convolution_2d(M, filtr)
 
         return results
