@@ -1,6 +1,6 @@
 from typing import Literal, Any
 import sqlite3
-from typing import Any, Literal, TypeAlias
+from typing import TypeAlias
 
 class Bazadanych:
     def __init__(self, nazwa: str):

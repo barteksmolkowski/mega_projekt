@@ -24,7 +24,7 @@ class numeryNotEqualIntException(Exception):
         super().__init__("Error: numery zawiera nie-int")
 class NumeryInvalidTypeException(Exception):
     def __init__(self):
-        super().__init__(f"numery musi być int lub list[int]")
+        super().__init__("numery musi być int lub list[int]")
 
 class __chat__(ABC):
     def __init__(self):
