@@ -1,7 +1,5 @@
-from common import (
-    ABC,
-    abstractmethod
-)
+from .common import ABC, abstractmethod
+
 
 class __CacheManager__(ABC):
     @abstractmethod

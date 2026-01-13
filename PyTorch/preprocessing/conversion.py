@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
-from PIL import Image
-
-from common import MatrixChannels
 
 import numpy as np
+from PIL import Image
+
+from .common import MatrixChannels
+
 
 class __ImageToMatrixConverter__(ABC):
     @abstractmethod
@@ -19,5 +20,6 @@ class ImageToMatrixConverter(__ImageToMatrixConverter__):
         return np.array(img)
 
     def get_channels_from_file(self, path):
-        M = self.convert_image_to_matrix(path)
-        return self.separate_channels(M)
+        M = self._convert_image_to_matrix(path)
+        return self._separate_channels(M)
+    

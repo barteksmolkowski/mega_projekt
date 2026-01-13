@@ -3,9 +3,9 @@ from typing import Literal, overload
 
 import numpy as np
 
-from common import TypeMatrix
+from .common import TypeMatrix
+from .decorators import parameter_complement
 
-from decorators import parameter_complement
 
 class __Thresholding__(ABC):
     @overload

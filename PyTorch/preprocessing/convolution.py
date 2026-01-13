@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from itertools import product
-from typing import overload, Literal, List
-from common import TypeMatrix
+from typing import List, Literal, overload
 
-from geometry import MatrixCreator
+from .common import TypeMatrix
+from .geometry import ImageGeometry
+
 
 class __ConvolutionActions__(ABC):
     @abstractmethod
@@ -84,7 +85,7 @@ class ConvolutionActions(__ConvolutionActions__):
         results = []
         for filtr, M in product(filtrs, M_three_channels):
             print(f"aktualny filtr: {filtr}")
-            M = MatrixCreator.pad(M, -1, 1)
+            M = ImageGeometry.pad(M, -1, 1)
             results = ConvolutionActions.convolution_2d(M, filtr)
 
         return results

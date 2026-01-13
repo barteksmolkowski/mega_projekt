@@ -1,9 +1,6 @@
-from common import (
-    ABC,
-    abstractmethod,
-    TypeMatrix,
-    List
-)
+from .common import ABC, List, TypeMatrix, abstractmethod
+
+
 class __HOG__(ABC):
     @abstractmethod
     def extract(self, matrix: TypeMatrix) -> List[float]:

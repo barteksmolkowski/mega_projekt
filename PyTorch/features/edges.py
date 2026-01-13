@@ -1,8 +1,5 @@
-from common import (
-    ABC,
-    abstractmethod,
-    TypeMatrix
-)
+from .common import ABC, TypeMatrix, abstractmethod
+
 
 class __EdgeDetector__(ABC):
     @abstractmethod

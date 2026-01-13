@@ -28,6 +28,8 @@ project/
 │   ├── dataset.py           ← Dataset
 │   ├── batch.py             ← BatchProcessing
 │   ├── cache.py             ← CacheManager
+│   ├── downloader.py        ← DataDownloader
+│   ├── metadata.json        ← Data
 │
 ├── nn/                      ← MODELE (PÓŹNIEJ)
 │   ├── __init__.py

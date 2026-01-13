@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Literal, overload
 
-from common import TypeMatrix
-
 import numpy as np
+
+from .common import TypeMatrix
+
 
 class __GrayScaleProcessing__(ABC):
     @overload

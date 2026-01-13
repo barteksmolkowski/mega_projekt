@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
-from common import TypeMatrix
+
 import numpy as np
+
+from .common import TypeMatrix
+
 
 class __ImageGeometry__(ABC):
     @abstractmethod

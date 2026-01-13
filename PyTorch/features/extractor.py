@@ -1,9 +1,4 @@
-from common import (
-    ABC,
-    abstractmethod,
-    TypeMatrix,
-    List
-)
+from .common import ABC, List, TypeMatrix, abstractmethod
 
 
 class __FeatureExtraction__(ABC):

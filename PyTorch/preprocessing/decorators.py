@@ -1,6 +1,8 @@
-import random
 import math
+import random
 from functools import wraps
+from typing import Any, Callable, Dict, Optional, Tuple, TypeVar, cast
+
 import numpy as np
 
 __all__ = [
@@ -9,107 +11,98 @@ __all__ = [
     "prepare_angle",
     "prepare_values",
     "get_number_repeats",
-    "kernel_data_processing"
+    "kernel_data_processing",
+    "parameter_complement"
 ]
 
-def auto_fill_color(func):
-    """Logiczne szukanie tła - specyficzne dla augmentacji i AI."""
+F = TypeVar('F', bound=Callable[..., Any])
+
+def auto_fill_color(func: F) -> F:
     @wraps(func)
-    def wrapper(self, M, *args, **kwargs):
+    def wrapper(self, M: Any, *args, **kwargs):
+        M = np.asanyarray(M)
         if kwargs.get("fill") is None:
-            values, counts = np.unique(M, )
-            dict_colors = {}
-            for row in M:
-                for el in row:
-                    dict_colors[el] = dict_colors.get(el, 0) + 1
-            max_element = max(dict_colors, key=dict_colors.get)
-            kwargs["fill"] = max_element
+            values, counts = np.unique(M, return_counts=True)
+            kwargs["fill"] = values[np.argmax(counts)]
         return func(self, M, *args, **kwargs)
-    return wrapper
+    return cast(F, wrapper)
 
-def with_dimensions(func):
-    def wrapper(self, M, *args, **kwargs):
-        h = len(M)
-        w = len(M[0]) if h > 0 else 0
-        return func(self, M, h, w, *args, **kwargs)
-    
-    return wrapper
-
-def prepare_angle(func):
-    def wrapper(self, M, *args, **kwargs):
-        is_right = kwargs.get("is_right")
-        dict_rotation_limits = {
-            True: (0, 15),
-            False: (-15, 0),
-            None: (-15, 15)
-        }
-
-        rotation_limit = dict_rotation_limits[is_right]
-
-        if kwargs.get("angle") is None:
-            kwargs["angle"] = random.randint(rotation_limit[0], rotation_limit[1])
-
-        return func(self, M, *args, **kwargs)
-    
-    return wrapper
-
-def prepare_values(func):
-    """Logiczne przygotowanie macierzy rotacji i parametrów sin/cos."""
+def with_dimensions(func: F) -> F:
     @wraps(func)
-    def wrapper(self, M, h, w, angle=None, fill=0, **kwargs):
+    def wrapper(self, M: Any, *args, **kwargs):
+        M = np.asanyarray(M)
+        h, w = M.shape
+        return func(self, M, h, w, *args, **kwargs)
+    return cast(F, wrapper)
+
+def prepare_angle(func: F) -> F:
+    @wraps(func)
+    def wrapper(self, M: Any, *args, **kwargs):
+        is_right = kwargs.get("is_right")
+        limits: Dict[Optional[bool], Tuple[int, int]] = {
+            True: (0, 30),
+            False: (-30, 0),
+            None: (-30, 30)
+        }
+        low, high = limits.get(is_right, (-50, 50))
+        
+        if kwargs.get("angle") is None:
+            kwargs["angle"] = random.randint(low, high)
+        return func(self, M, *args, **kwargs)
+    return cast(F, wrapper)
+
+def prepare_values(func: F) -> F:
+    @wraps(func)
+    def wrapper(self, M: Any, h: int, w: int, angle: float = 0, fill: int = 0, **kwargs):
         rad = math.radians(angle)
+        M = np.asanyarray(M)
         
         params = {
             'cos_a': math.cos(rad),
             'sin_a': math.sin(rad),
-            'cx': w / 2,
-            'cy': h / 2,
-            'new_matrix': [[fill for _ in range(w)] for _ in range(h)]
+            'cx': w / 2.0,
+            'cy': h / 2.0,
+            'new_matrix': np.full((h, w), fill, dtype=M.dtype)
         }
         return func(self, M, h, w, params=params, angle=angle, fill=fill, **kwargs)
+    return cast(F, wrapper)
 
-    return wrapper
-
-def get_number_repeats(func):
-    def wrapper(*args, **kwargs):
-        repeats_positional = len(args) > 2
-        repeats_kw = "repeats" in kwargs
-
-        if not repeats_positional and not repeats_kw:
-            kwargs["repeats"] = random.randrange(2, 5)
-
-        return func(*args, **kwargs)
-
-    return wrapper
-
-def kernel_data_processing(func):
+def get_number_repeats(func: F) -> F:
     @wraps(func)
-    def wrapper(self, M, *args, **kwargs):
+    def wrapper(*args, **kwargs):
+        if "repeats" not in kwargs and len(args) <= 2:
+            kwargs["repeats"] = random.randrange(2, 5)
+        return func(*args, **kwargs)
+    return cast(F, wrapper)
+
+def kernel_data_processing(func: F) -> F:
+    @wraps(func)
+    def wrapper(self, M: Any, *args, **kwargs):
         k_size = kwargs.get("kernel_size")
-        
-        if k_size is None and len(args) > 0:
+        if k_size is None and args:
             k_size = args[0]
             
         if k_size is not None:
-            new_size = (k_size - 1) // 2
-            kwargs["r"] = range(-new_size, new_size + 1)
+            r_val = (k_size - 1) // 2
+            kwargs["r"] = range(-r_val, r_val + 1)
             
         return func(self, M, *args, **kwargs)
-    return wrapper
+    return cast(F, wrapper)
 
-def parameter_complement(func):
-    def wrapper(self, matrix, *args, **kwargs):
-        h, w = matrix.shape
-        if kwargs.get("auto_params") == True:
+def parameter_complement(func: F) -> F:
+    @wraps(func)
+    def wrapper(self, matrix: Any, *args, **kwargs):
+        matrix = np.asanyarray(matrix)
+        h, w = matrix.shape[:2]
+        
+        if kwargs.get("auto_params"):
             b_size = int(min(h, w) * 0.25)
-            b_size += 1 if b_size % 2 == 0 else 0
+            if b_size % 2 == 0:
+                b_size += 1
             b_size = max(3, b_size)
 
-            b_size = max(3, b_size)
             kwargs["block_size"] = b_size
             kwargs["c"] = 7
-            print(f"ustawiono block_size na {kwargs["block_size"]}")
-        
+            
         return func(self, matrix, *args, **kwargs)
-
-    return wrapper
+    return cast(F, wrapper)

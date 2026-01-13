@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from PIL import Image
+from typing import Literal, overload
+
 import numpy as np
+from PIL import Image
 
-
-from typing import overload, Literal
 
 class __ImageHandler__(ABC):
     @abstractmethod
@@ -20,10 +20,6 @@ class __ImageHandler__(ABC):
 
     @abstractmethod
     def save(self, data, path):
-        pass
-
-    @abstractmethod
-    def process_file(self, input_path: str, output_path: str) -> None:
         pass
 
     @overload
