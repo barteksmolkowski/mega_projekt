@@ -13,6 +13,7 @@
 # failedFileReplacementException
 from abc import ABC, abstractmethod
 
+
 class lenNumeryNoweNotEqualException(Exception):
     def __init__(self, numery, nowe):
         super().__init__(f"Długość numery: {len(numery)} i długość nowe: {len(nowe)} są nie równe")

@@ -4,48 +4,41 @@
 # dokończyć kod
 # import do strona www (żeby tam można było używać)
 
-from abc import ABC, abstractmethod
 import os
 import time
+from abc import ABC, abstractmethod
+
 from edytor_sciezki_Exceptions import (
-    FileNotFoundPoprawnoscPlikuException,
-    PermissionDeniedPoprawnoscPlikuException,
-    UnicodeDecodePoprawnoscPlikuException,
-    UnknownExtensionPoprawnoscPlikuException,
-    FolderAlreadyExistsStworzFolderException,
-    ParentFolderNotFoundStworzFolderException,
-    PathIsNotDirectoryStworzFolderException,
-    FolderPermissionDeniedStworzFolderException,
-    FolderUnknownOSErrorStworzFolderException,
-    SourceFolderNotFoundEdycjaFolderException,
     DestinationFolderAlreadyExistsEdycjaFolderException,
-    SourcePathIsNotDirectoryEdycjaFolderException,
-    FolderRenamePermissionDeniedEdycjaFolderException,
+    FileAppendOSErrorDopiszException,
+    FileAppendPermissionDeniedDopiszException, FileNotFoundDopiszException,
+    FileNotFoundOdczytajException, FileNotFoundPoprawnoscPlikuException,
+    FileNotFoundResetPlikException, FileReadOSErrorOdczytajException,
+    FileReadPermissionDeniedOdczytajException,
+    FileResetOSErrorResetPlikException,
+    FileResetPermissionDeniedResetPlikException,
+    FolderAlreadyExistsStworzFolderException,
+    FolderPermissionDeniedStworzFolderException,
     FolderRenameOSErrorEdycjaFolderException,
-    SearchStartPathNotFoundPrzeszukanieException,
+    FolderRenamePermissionDeniedEdycjaFolderException,
+    FolderUnknownOSErrorStworzFolderException,
+    InvalidSearchLimitPrzeszukanieException,
+    ParentFolderNotFoundStworzFolderException,
+    PathIsNotDirectoryStworzFolderException, PathIsNotFileDopiszException,
+    PathIsNotFileOdczytajException, PathIsNotFileResetPlikException,
+    PermissionDeniedPoprawnoscPlikuException, ReplaceOSErrorZastapException,
+    ReplacePermissionDeniedZastapException,
     SearchPathIsNotDirectoryPrzeszukanieException,
     SearchPermissionDeniedPrzeszukanieException,
-    InvalidSearchLimitPrzeszukanieException,
+    SearchStartPathNotFoundPrzeszukanieException,
     SourceFileNotFoundZastapException,
-    SourcePathIsNotFileZastapException,
-    ReplacePermissionDeniedZastapException,
-    ReplaceOSErrorZastapException,
-    FileNotFoundResetPlikException,
-    PathIsNotFileResetPlikException,
-    UnsupportedFileExtensionResetPlikException,
-    FileResetPermissionDeniedResetPlikException,
-    FileResetOSErrorResetPlikException,
-    FileNotFoundOdczytajException,
-    PathIsNotFileOdczytajException,
-    UnsupportedFileExtensionOdczytajException,
-    FileReadPermissionDeniedOdczytajException,
-    FileReadOSErrorOdczytajException,
-    FileNotFoundDopiszException,
-    PathIsNotFileDopiszException,
+    SourceFolderNotFoundEdycjaFolderException,
+    SourcePathIsNotDirectoryEdycjaFolderException,
+    SourcePathIsNotFileZastapException, UnicodeDecodePoprawnoscPlikuException,
+    UnknownExtensionPoprawnoscPlikuException,
     UnsupportedFileExtensionDopiszException,
-    FileAppendPermissionDeniedDopiszException,
-    FileAppendOSErrorDopiszException,
-)
+    UnsupportedFileExtensionOdczytajException,
+    UnsupportedFileExtensionResetPlikException)
 
 FileNotFoundPoprawnoscPlikuException
 def czasFunkcji(func):
@@ -475,3 +468,71 @@ class SciezkaPliku(__SciezkaPliku__):
                     for element in zawartosc:
                         plik.write(element)
 
+import os
+import shutil
+
+
+def test_systemu_plikow():
+    print(f"\n=> ROZPOCZYNAM TESTY METOD: SciezkaPliku (Status 2026) <=")
+    
+    # Konfiguracja środowiska testowego
+    sp = SciezkaPliku()
+    root_test = "TEST_DIR_REMOVABLE"
+    test_file = os.path.join(root_test, "test_unit.txt")
+    target_file = os.path.join(root_test, "test_replaced.txt")
+    
+    try:
+        # 1. Test stworz_folder
+        try:
+            sp.stworz_folder(".", root_test)
+            print("[OK] stworz_folder")
+        except Exception as e: print(f"[FAIL] stworz_folder: {e}")
+
+        # 2. Test dopisz
+        try:
+            sp.dopisz(test_file, ["Linia 1", "Linia 2"])
+            print("[OK] dopisz")
+        except Exception as e: print(f"[FAIL] dopisz: {e}")
+
+        # 3. Test poprawnosc_pliku
+        try:
+            ext, ok, msg = sp.poprawnosc_pliku(test_file)
+            if ok and ext == "txt": print("[OK] poprawnosc_pliku")
+            else: raise ValueError(msg)
+        except Exception as e: print(f"[FAIL] poprawnosc_pliku: {e}")
+
+        # 4. Test odczytaj
+        try:
+            dane = sp.odczytaj(test_file)
+            if len(dane) == 2: print("[OK] odczytaj")
+            else: raise ValueError("Błędna liczba linii")
+        except Exception as e: print(f"[FAIL] odczytaj: {e}")
+
+        # 5. Test zastap (Rename/Move)
+        try:
+            sp.zastap(test_file, target_file)
+            if os.path.exists(target_file): print("[OK] zastap")
+        except Exception as e: print(f"[FAIL] zastap: {e}")
+
+        # 6. Test przeszukiwanie
+        try:
+            wyniki = sp.przeszukiwanie(nazwa="test", zaczyna_od=root_test)
+            if len(wyniki) > 0: print("[OK] przeszukiwanie")
+        except Exception as e: print(f"[FAIL] przeszukiwanie: {e}")
+
+        # 7. Test reset_plik
+        try:
+            sp.reset_plik(target_file)
+            if len(sp.odczytaj(target_file)) == 0: print("[OK] reset_plik")
+        except Exception as e: print(f"[FAIL] reset_plik: {e}")
+
+    finally:
+        # CZYSZCZENIE (Cleanup) - Usuwamy wszystko, co stworzył test
+        print(f"\n=> CZYSZCZENIE ŚRODOWISKA... <=")
+        if os.path.exists(root_test):
+            shutil.rmtree(root_test)
+            print(f"Usunięto folder testowy: {root_test}")
+        print("Status: System plików przywrócony do stanu początkowego.")
+
+if __name__ == "__main__":
+    test_systemu_plikow()
